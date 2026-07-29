@@ -19,7 +19,7 @@ permissions:
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
-  ECR_REPOSITORY: demo-app-dev-backend # the repo Terraform created
+  ECR_REPOSITORY: demo-app-prod-backend # the repo Terraform created
 
 jobs:
   ci:
