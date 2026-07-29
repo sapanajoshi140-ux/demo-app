@@ -4,7 +4,7 @@ environment       = "dev"
 azs               = ["ap-south-1a", "ap-south-1b"]
 app_instance_type = "t3.small"
 db_instance_type  = "t3.small"
-key_name          = "CHANGEME-keypair" # an existing EC2 key pair for SSH
+key_name          = "demo" # an existing EC2 key pair for SSH
 
 # The zone must already exist in Route53; app_domain is a record inside it.
 hosted_zone_name = "demo.sapanajoshi.com.np"         # CHANGEME — your hosted zone
