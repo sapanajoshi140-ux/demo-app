@@ -1,6 +1,6 @@
 variable "region" {
   type    = string
-  default = "us-east-1"
+  default = "ap-south-1"
 }
 
 variable "environment" {
@@ -11,7 +11,7 @@ variable "environment" {
 variable "azs" {
   description = "Two AZs (ALB requirement)."
   type        = list(string)
-  default     = ["us-east-1a", "us-east-1b"]
+  default     = ["ap-south-1a", "ap-south-1b"]
 }
 
 variable "app_instance_type" {
