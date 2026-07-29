@@ -8,4 +8,4 @@ db_instance_type  = "t3.medium"
 key_name          = "demo" # an existing EC2 key pair for SSH
 
 hosted_zone_name = "demo.sapanajoshi.com.np"     # CHANGEME — your hosted zone
-app_domain       = "dev.demo.sapanajoshi.com.np" # CHANGEME — served over HTTPS
+app_domain       = "web.demo.sapanajoshi.com.np" # CHANGEME — served over HTTPS
