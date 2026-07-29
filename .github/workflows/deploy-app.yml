@@ -1,0 +1,77 @@
+name: Deploy App
+
+# Stage 3 of the deploy: deploy the app containers with Ansible, over SSH.
+# Prerequisites: the infra exists (Infra workflow) and the images are in ECR
+# (backend-ci / frontend-ci).
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        type: choice
+        options: [dev, prod]
+        default: dev
+        required: true
+      image_tag:
+        description: Image tag to deploy
+        type: string
+        required: false
+        default: latest
+
+permissions:
+  id-token: write # OIDC → AWS (SSM lookup + dynamic inventory)
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+  TARGET_ENV: ${{ github.event.inputs.environment || 'dev' }}
+  IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Picking prod trips its GitHub Environment's required-reviewer gate.
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Authenticate to AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Resolve the ECR registry
+        run: |
+          ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+          echo "ECR_REGISTRY=$ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install Ansible
+        run: |
+          pip install ansible boto3 botocore
+          ansible-galaxy collection install -r ansible/requirements.yml
+
+      - name: Write the SSH private key
+        run: |
+          install -m 600 /dev/null key.pem
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > key.pem
+
+      # Everything Ansible needs is passed via the environment — group_vars/all.yml
+      # reads each with lookup('env', ...). Secrets are mapped in here; the rest
+      # already live in the job env / were exported above.
+      - name: Ansible deploy
+        working-directory: ansible
+        env:
+          ENV_NAME: ${{ env.TARGET_ENV }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          ansible-playbook -i "inventory/${ENV_NAME}.aws_ec2.yml" site.yml \
+            --private-key ../key.pem
